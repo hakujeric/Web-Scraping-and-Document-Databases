@@ -1,49 +1,43 @@
-# import necessary libraries
-from flask import Flask, render_template, redirect
+# Import Dependencies 
+from flask import Flask, render_template, redirect 
 from flask_pymongo import PyMongo
 import scrape_mars
+import os
 
-# create instance of Flask app
+
+#import config 
+
+# Create an instance of Flask app
 app = Flask(__name__)
 
-# create mongo connection
-# Use flask_pymongo to set up mongo connection
+# Use flask_pymongo to set up mongo connection locally 
 app.config["MONGO_URI"] = "mongodb://localhost:27017/mars_app"
 mongo = PyMongo(app)
 
-# Or set inline
-# mongo = PyMongo(app, uri="mongodb://localhost:27017/craigslist_app")
-# conn = 'mongodb://localhost:27017'
-# client = pymongo.MongoClient(conn)
-# client = pymongo.MongoClient()
-# db = client.mars_db
-# collection = db.mars_data
-
-
-# Define the 'classDB' database in Mongo
-# db = client.marsDB
-
-# Define collections
-# collection = db.Marsdata
-
+# Create route that renders index.html template and finds documents from mongo
 @app.route("/")
-def home():
-    # mars_data = list(db.collection.find())[0]
-    return  render_template('index.html', mars_data = mars_data)
+def home(): 
 
-@app.route("/scrape")
-def web_scrape():
-    mars_data = mongo.db.mars_data
-    # db.collection.remove({})
-    # Run the scrape function
-    # costa_data = scrape_costa.scrape_info()
-    mars_data = scrape_mars.scrape()
-    # db.collection.insert_one(mars_data)
-    # Update the Mongo database using update and upsert=True
-    # mongo.db.collection.update({}, mars_data, upsert=True)
+    # Find data
+    mars_info = mongo.db.mars_info.find_one()
 
-    # Redirect back to home page
-    return redirect("/")
+    # Return template and data
+    return render_template("index.html", mars=mars_info)
 
-if __name__ == "__main__":
-    app.run(debug=True)
+# Route that will trigger scrape function
+@app.route("/scrape_mars")
+def scrape(): 
+
+    # Run scrapped functions
+    mars_info = mongo.db.mars_info
+    mars_data = scrape_mars.marsNews()
+    mars_data = scrape_mars.marsImage()
+    mars_data = scrape_mars.marsFacts()
+    mars_data = scrape_mars.marsWeather()
+    mars_data = scrape_mars.marsHemispheres()
+    mars_info.update({}, mars_data, upsert=True)
+
+    return redirect("/", code=302)
+
+if __name__ == "__main__": 
+    app.run(debug= True)
